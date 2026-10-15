@@ -1,0 +1,17 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/translate",
+      "destination": "/translate.html"
+    },
+    {
+      "source": "/chat",
+      "destination": "/index.html"
+    }
+  ]
+}
