@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SakuraSensei AI - Belajar Bahasa Jepang dengan AI Chat Agent Ollama</title>
+  <meta name="description"
+    content="Aplikasi Web AI Chat Agent untuk belajar bahasa Jepang interaktif berbasis model lokal Ollama. Belajar tata bahasa, kanji, furigana, dan latihan percakapan.">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌸</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css?v=20261015_02">
+</head>
+
+<body>
+  <!-- Ambient Falling Sakura Petals Canvas -->
+  <canvas id="sakura-canvas"></canvas>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand-container" id="brand-logo" title="SakuraSensei AI">
+      <button class="btn-icon sidebar-toggle-btn" id="sidebar-toggle" aria-label="Toggle Sidebar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <div class="brand-avatar">
+        <img src="assets/avatar.jpg" alt="SakuraSensei Avatar" id="header-avatar">
+      </div>
+      <div class="brand-info">
+        <h1><span class="brand-kanji">桜先生</span> SakuraSensei <span class="brand-badge">AI Agent</span></h1>
+        <div class="brand-sub">Asisten Interaktif Belajar Bahasa Jepang • Ollama</div>
+      </div>
+    </div>
+
+    <!-- Center Navigation Tabs -->
+    <div class="nav-tabs">
+      <a href="index.html" class="nav-tab-link active">
+        <span>💬</span> Chat Sensei
+      </a>
+      <a href="translate.html" class="nav-tab-link">
+        <span>🌐</span> Penerjemah
+      </a>
+    </div>
+
+    <!-- Ollama Connection Status & Model Selector -->
+    <div class="header-middle">
+      <div class="ollama-status-pill" id="ollama-status-pill" title="Status server Ollama">
+        <div class="status-dot"></div>
+        <span id="ollama-status-text">Memeriksa Ollama...</span>
+      </div>
+
+      <div class="model-selector-wrapper">
+        <label for="model-select">Model:</label>
+        <select id="model-select" class="model-select" title="Pilih model Ollama">
+          <option value="glm-5.3-flash:cloud" selected>glm-5.3-flash:cloud (Cloud ✨)</option>
+          <option value="qwen2.5:7b">qwen2.5:7b (Lokal)</option>
+          <option value="qwen2.5:3b">qwen2.5:3b (Ringan)</option>
+          <option value="llama3.2:3b">llama3.2:3b</option>
+          <option value="mistral:7b">mistral:7b</option>
+        </select>
+        <button class="refresh-models-btn" id="refresh-models-btn" title="Muat ulang daftar model dari Ollama">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="header-actions">
+      <button class="btn-icon" id="btn-open-kana" title="Buka Bagan Hiragana & Katakana" aria-label="Bagan Kana">
+        <span style="font-weight: 700; font-family: 'Noto Sans JP';">あ</span>
+      </button>
+      <button class="btn-icon" id="btn-open-vocab" title="Buku Kosakata Tersimpan" aria-label="Buku Kosakata">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        </svg>
+      </button>
+      <button class="btn-icon" id="btn-settings" title="Pengaturan Koneksi Ollama" aria-label="Pengaturan">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      </button>
+      <button class="btn-icon" id="theme-toggle" title="Ganti Tema Visual" aria-label="Ganti Tema">
+        <span id="theme-icon">🌙</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="app-container">
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="app-sidebar" id="app-sidebar">
+      <!-- Mobile Close Header -->
+      <div class="sidebar-mobile-header">
+        <span style="font-weight: 700; font-size: 0.95rem; color: var(--sakura-pink);">🌸 Menu Belajar</span>
+        <button class="btn-icon" id="sidebar-close-btn" style="width: 32px; height: 32px;" title="Tutup menu">✕</button>
+      </div>
+
+      <!-- Target JLPT Level -->
+      <div>
+        <div class="sidebar-section-title">
+          <span>Target Level JLPT</span>
+          <span style="color: var(--sakura-pink); font-size: 0.7rem;">日本語能力試験</span>
+        </div>
+        <div class="jlpt-selector" id="jlpt-selector">
+          <button class="jlpt-btn" data-level="ALL">Semua</button>
+          <button class="jlpt-btn active" data-level="N5">N5</button>
+          <button class="jlpt-btn" data-level="N4">N4</button>
+          <button class="jlpt-btn" data-level="N3">N3</button>
+          <button class="jlpt-btn" data-level="N2">N2</button>
+          <button class="jlpt-btn" data-level="N1">N1</button>
+        </div>
+      </div>
+
+      <!-- Mode Belajar (Learning Modes) -->
+      <div>
+        <div class="sidebar-section-title">
+          <span>Mode Belajar</span>
+          <span>学習モード</span>
+        </div>
+        <div class="mode-cards-grid" id="mode-cards">
+          <div class="mode-card active" data-mode="sensei">
+            <div class="mode-icon">🎓</div>
+            <div class="mode-details">
+              <div class="mode-title">Guru Sensei (先生)</div>
+              <div class="mode-desc">Penjelasan tata bahasa & tanya jawab detail</div>
+            </div>
+          </div>
+          <div class="mode-card" data-mode="kaiwa">
+            <div class="mode-icon">💬</div>
+            <div class="mode-details">
+              <div class="mode-title">Percakapan (会話)</div>
+              <div class="mode-desc">Latihan interaktif percakapan sehari-hari</div>
+            </div>
+          </div>
+          <div class="mode-card" data-mode="correction">
+            <div class="mode-icon">✍️</div>
+            <div class="mode-details">
+              <div class="mode-title">Koreksi Kalimat (添削)</div>
+              <div class="mode-desc">Periksa tata bahasa & perbaiki kalimatmu</div>
+            </div>
+          </div>
+          <div class="mode-card" data-mode="kanji">
+            <div class="mode-icon">🈳</div>
+            <div class="mode-details">
+              <div class="mode-title">Bedah Kanji & Kosa Kata</div>
+              <div class="mode-desc">Onyomi, Kunyomi, radikal, arti & contoh</div>
+            </div>
+          </div>
+          <div class="mode-card" data-mode="quiz">
+            <div class="mode-icon">🎯</div>
+            <div class="mode-details">
+              <div class="mode-title">Latihan & Kuis JLPT</div>
+              <div class="mode-desc">Soal pilihan ganda & uji pemahaman materi</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skenario Roleplay Cepat -->
+      <div>
+        <div class="sidebar-section-title">
+          <span>Skenario Percakapan</span>
+          <span>場面</span>
+        </div>
+        <div class="scenario-pills" id="scenario-list">
+          <button class="scenario-btn" data-scenario="🏪 Belanja di Convenience Store (Konbini)">
+            <span>🏪</span> Konbini (コンビニ)
+          </button>
+          <button class="scenario-btn" data-scenario="🍜 Memesan Makanan di Restoran Ramen / Izakaya">
+            <span>🍜</span> Restoran Ramen (ラーメン屋)
+          </button>
+          <button class="scenario-btn" data-scenario="🚄 Membeli Tiket & Bertanya di Stasiun Kereta">
+            <span>🚄</span> Stasiun Shinkansen (駅)
+          </button>
+          <button class="scenario-btn" data-scenario="🗾 Menanyakan Arah Jalan kepada Orang Jepang">
+            <span>🗺️</span> Menanyakan Arah (道案内)
+          </button>
+          <button class="scenario-btn" data-scenario="💼 Wawancara Kerja Formal (Mensetsu)">
+            <span>💼</span> Wawancara Kerja (面接)
+          </button>
+          <button class="scenario-btn" data-scenario="🌸 Mengobrol Santai dengan Teman Sebaya (Tameguchi)">
+            <span>🌸</span> Obrolan Santai Teman (友達)
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Tools Card -->
+      <div class="quick-tools-box">
+        <button class="quick-tool-btn" id="btn-tool-kana">
+          <span>📖 Bagan Hiragana / Katakana</span>
+          <span style="color: var(--sakura-pink);">A-I-U-E-O</span>
+        </button>
+        <button class="quick-tool-btn" id="btn-tool-vocab">
+          <span>🔖 Buku Kosakata Tersimpan</span>
+          <span class="badge-count" id="vocab-count-badge">0</span>
+        </button>
+      </div>
+
+      <!-- Daily Kanji Card -->
+      <div class="daily-kanji-card" id="daily-kanji-card">
+        <div class="kanji-header">
+          <span
+            style="font-size: 0.72rem; text-transform: uppercase; color: var(--sakura-pink); font-weight: 700;">Kanji
+            Hari Ini • 今日の一字</span>
+          <span style="font-size: 0.75rem; color: var(--gold-leaf); font-weight: 600;">N5</span>
+        </div>
+        <div class="kanji-char-display">
+          <div class="big-kanji">学</div>
+          <div class="kanji-meta">
+            <span class="kanji-meaning">Belajar / Ilmu</span>
+            <span class="kanji-reading"><b>On:</b> ガク (gaku) | <b>Kun:</b> まな・ぶ (mana.bu)</span>
+            <span style="font-size: 0.7rem; color: var(--text-dim); margin-top: 3px;">Contoh: 学生 (gakusei -
+              murid)</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Chat Main Area -->
+    <main class="chat-main-area">
+      <!-- Chat Sub-header Bar -->
+      <div class="chat-top-bar">
+        <div class="current-mode-indicator">
+          <div class="mode-badge-pill clickable" id="current-mode-pill" title="Ketuk untuk ganti mode belajar">
+            <span>🎓</span>
+            <span id="current-mode-title">Guru Sensei</span>
+            <span class="pill-chevron">▾</span>
+          </div>
+          <div class="mode-badge-pill clickable" id="current-jlpt-pill"
+            style="background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.3); color: #818cf8;" title="Ketuk untuk ganti level JLPT">
+            <span id="current-jlpt-text">Level: N5</span>
+            <span class="pill-chevron">▾</span>
+          </div>
+        </div>
+
+        <div class="chat-toggles">
+          <label class="toggle-item" title="Tampilkan cara baca Hiragana di atas huruf Kanji">
+            <span>Furigana (ふりがな)</span>
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggle-furigana" checked>
+              <span class="slider"></span>
+            </div>
+          </label>
+          <label class="toggle-item" title="Tampilkan teks Romaji abjad latin">
+            <span>Romaji (ローマ字)</span>
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggle-romaji" checked>
+              <span class="slider"></span>
+            </div>
+          </label>
+          <label class="toggle-item" title="Otomatis putar suara bahasa Jepang ketika Sensei menjawab">
+            <span>Suara Otomatis</span>
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggle-auto-tts">
+              <span class="slider"></span>
+            </div>
+          </label>
+          <button class="btn-icon" id="btn-clear-chat" title="Bersihkan riwayat percakapan" aria-label="Bersihkan chat"
+            style="width: 32px; height: 32px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Chat Messages Container -->
+      <div class="chat-messages-container" id="chat-messages">
+        <!-- Welcome Hero Card (Visible initially) -->
+        <div class="welcome-hero" id="welcome-hero">
+          <div class="welcome-avatar">
+            <img src="assets/avatar.jpg" alt="SakuraSensei">
+          </div>
+          <h2>Konnichiwa! Selamat Datang di SakuraSensei AI 🌸</h2>
+          <p class="welcome-subtitle">
+            Asisten cerdas pribadi Anda untuk menguasai bahasa Jepang. Didukung oleh AI model lokal <b>Ollama</b> dengan
+            panduan tata bahasa, furigana otomatis, pelafalan audio alami, dan percakapan interaktif.
+          </p>
+
+          <div class="quick-prompts-label">Mulai dengan topik cepat berikut:</div>
+          <div class="quick-prompts-grid">
+            <div class="quick-prompt-card"
+              data-prompt="Jelaskan perbedaan partikel は (wa) dan が (ga) beserta contoh kalimatnya">
+              <div class="quick-prompt-title"><span>💡</span> Partikel は vs が</div>
+              <div class="quick-prompt-sub">Pahami perbedaan krusial tata bahasa dasar</div>
+            </div>
+            <div class="quick-prompt-card" data-prompt="Ayo kita simulasi memesan semangkuk ramen di restoran Jepang">
+              <div class="quick-prompt-title"><span>🍜</span> Pesan Makanan di Restoran</div>
+              <div class="quick-prompt-sub">Latihan percakapan roleplay alami di Jepang</div>
+            </div>
+            <div class="quick-prompt-card" data-prompt="Koreksi kalimat bahasa Jepang saya: 私は明日友達と映画に見に行きます">
+              <div class="quick-prompt-title"><span>✍️</span> Koreksi Kalimat</div>
+              <div class="quick-prompt-sub">Cek ketepatan partikel dan kewajaran kalimat</div>
+            </div>
+            <div class="quick-prompt-card"
+              data-prompt="Buatkan 3 soal latihan kuis tata bahasa JLPT N5 lengkap dengan pilihan dan pembahasannya">
+              <div class="quick-prompt-title"><span>🎯</span> Kuis Cepat JLPT N5</div>
+              <div class="quick-prompt-sub">Uji pemahaman pola kalimat level pemula</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Bottom Controls -->
+      <div class="chat-bottom-wrapper">
+        <!-- Quick Japanese Phrases Bar -->
+        <div class="quick-phrases-scroll" id="quick-phrases-scroll">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Input Box -->
+        <div class="input-box-container">
+          <textarea id="chat-input" class="chat-textarea"
+            placeholder="Ketik pertanyaan dalam bahasa Indonesia atau Jepang... (contoh: 'Apa arti taberu?', 'Koreksi kalimat ini...')"
+            rows="1"></textarea>
+
+          <div class="input-actions">
+            <button class="input-action-btn" id="btn-mic" title="Bicara dengan suara (Speech-to-Text)"
+              aria-label="Rekam Suara">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+                <line x1="8" y1="23" x2="16" y2="23" />
+              </svg>
+            </button>
+            <button class="send-btn" id="btn-send" title="Kirim Pesan" aria-label="Kirim">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="input-tip">
+          <span>💡 <b>Enter</b> kirim • <b>Shift+Enter</b> baris baru • Tekan ikon <b>あ</b> untuk bagan Kana</span>
+          <span id="speech-indicator" style="display: none; color: #ef4444; font-weight: 600;">🔴 Mendengarkan suara
+            Anda...</span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal: Kana Chart (Hiragana & Katakana) -->
+  <div class="modal-overlay" id="modal-kana">
+    <div class="modal-card">
+      <div class="bottom-sheet-handle"></div>
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🌸</span> Bagan Interaktif Hiragana & Katakana (五十音)
+        </div>
+        <button class="modal-close-btn" data-close="modal-kana">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="kana-tabs">
+          <button class="kana-tab-btn active" id="tab-hiragana">Hiragana (ひらがな)</button>
+          <button class="kana-tab-btn" id="tab-katakana">Katakana (カタカナ)</button>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px;">
+          Klik karakter untuk mendengarkan lafal audio dan menyisipkannya ke input chat.
+        </p>
+        <div class="kana-grid" id="kana-grid-container">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Vocabulary Notebook (Buku Kosakata Tersimpan) -->
+  <div class="modal-overlay" id="modal-vocab">
+    <div class="modal-card">
+      <div class="bottom-sheet-handle"></div>
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🔖</span> Buku Catatan Kosakata Jepang
+        </div>
+        <button class="modal-close-btn" data-close="modal-vocab">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <p style="font-size: 0.82rem; color: var(--text-muted);">
+            Kumpulan kata dan frasa yang telah Anda simpan dari percakapan.
+          </p>
+          <button class="action-chip-btn" id="btn-export-vocab" title="Salin semua kosakata">
+            📋 Ekspor Teks
+          </button>
+        </div>
+        <div class="vocab-list" id="vocab-items-container">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Ollama Settings -->
+  <div class="modal-overlay" id="modal-settings">
+    <div class="modal-card" style="max-width: 540px;">
+      <div class="bottom-sheet-handle"></div>
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>⚙️</span> Konfigurasi Model & Server Ollama
+        </div>
+        <button class="modal-close-btn" data-close="modal-settings">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px;">
+            Alamat Endpoint Ollama / Base URL:
+          </label>
+          <input type="text" id="settings-ollama-host" value="https://ollama.com"
+            style="width: 100%; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-main); font-family: monospace; font-size: 0.9rem;" />
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px;">
+            Ollama API Key:
+          </label>
+          <input type="text" id="settings-ollama-key" value="fd0dea5cda6649a2a068364ba2bed5a8.l2gJ2sIDrhDYquPjGikK6lMW"
+            style="width: 100%; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-main); font-family: monospace; font-size: 0.85rem;" />
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px;">
+            Model Default:
+          </label>
+          <input type="text" id="settings-ollama-model" value="glm-5.3-flash:cloud"
+            style="width: 100%; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-main); font-family: monospace; font-size: 0.9rem;" />
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+          <button class="action-chip-btn" id="btn-save-settings"
+            style="background: var(--sakura-gradient); color: #fff; padding: 8px 16px; font-weight: 600;">
+            Simpan & Cek Koneksi
+          </button>
+        </div>
+
+        <div
+          style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px;">
+          <h4 style="font-size: 0.88rem; margin-bottom: 8px; color: var(--sakura-pink);">🚀 Panduan Cepat Menjalankan
+            Ollama di Komputer:</h4>
+          <ol style="margin-left: 20px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;">
+            <li>Unduh Ollama dari situs resmi: <a href="https://ollama.com" target="_blank"
+                style="color: var(--sakura-pink);">ollama.com</a></li>
+            <li>Buka terminal dan unduh model Jepang yang direkomendasikan:<br>
+              <code
+                style="display: block; margin: 4px 0; background: #000; padding: 6px; border-radius: 4px; color: #34d399;">ollama run qwen2.5:7b</code>
+            </li>
+            <li>Jalankan service Ollama: <code
+                style="background: #000; padding: 2px 6px; border-radius: 4px; color: #34d399;">ollama serve</code></li>
+            <li>Refresh halaman web ini, dan SakuraSensei langsung siap menemani belajar!</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Bottom Ergonomic Navigation Bar -->
+  <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+    <button class="mobile-nav-item active" id="mob-nav-chat" title="Chat AI Sensei">
+      <span class="mob-nav-icon">💬</span>
+      <span class="mob-nav-label">Chat</span>
+    </button>
+    <button class="mobile-nav-item" id="mob-nav-mode" title="Pilih Mode Belajar">
+      <span class="mob-nav-icon">🎓</span>
+      <span class="mob-nav-label">Mode</span>
+    </button>
+    <a href="translate.html" class="mobile-nav-item" id="mob-nav-translate" title="Penerjemah Bahasa">
+      <span class="mob-nav-icon">🌐</span>
+      <span class="mob-nav-label">Terjemah</span>
+    </a>
+    <button class="mobile-nav-item" id="mob-nav-kana" title="Bagan Hiragana & Katakana">
+      <span class="mob-nav-icon">あ</span>
+      <span class="mob-nav-label">Kana</span>
+    </button>
+    <button class="mobile-nav-item" id="mob-nav-vocab" title="Buku Kosakata">
+      <span class="mob-nav-icon">🔖</span>
+      <span class="mob-nav-label">Kosakata</span>
+    </button>
+  </nav>
+
+  <!-- Scripts -->
+  <script src="js/kana-data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+
+</html>
